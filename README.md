@@ -1,23 +1,45 @@
 # 个性化对象检测训练—— Pet Detector
 
+学习 Google Tensorflow Object Detection API的例子
+
+## 对象检测的训练和执行过程
+
+训练过程经历了下面这个流程，通过 SGD 对 loss 进行优化。
+
+    inputs (images tensor) -> preprocess -> predict -> loss -> outputs (loss tensor)
+
+执行过程的流程如下：
+
+    inputs (images tensor) -> preprocess -> predict -> postprocess ->
+      outputs (boxes tensor, scores tensor, classes tensor, num_detections tensor)
+      
 ## 目录结构
 
-    /                   项目根目录
-    README.md               
-    data                训练所需的原始图片和素材                   
-    models              预训练好的模型文件下载    
-    object_detection    对象检测API    
-    training_data       本次训练所需的    
-    venv
+    /                      项目根目录
+    |- README.md               
+    |- data                训练所需的原始图片和素材
+        |- pets
+        |- starwar                   
+    |- models              预训练好的模型文件下载   
+        |- faster_rcnn_resnet101_coco_2018_01_28 
+    |- object_detection    对象检测API，来自于 https://github.com/tensorflow/models/tree/master/research 
+    |- training_data       本次训练所需的训练数据放置于此 
+        |- pets
+            |- faster_rcnn_resnet101_pets.config
+            |- model.ckpt.data-00000-of-00001
+            |- model.ckpt.index
+            |- model.ckpt.meta
+            |- pet_faces_train.record-*-of-*
+            |- pet_label_map.pbtxt
+            |- ...
+        |- starwar
+    |- venv                python venv 环境
 
-
-## 安装Protoc
+## 安装Protoc, 编译 ProtoBuffer 模型
 
 Protoc用于编译相关程序运行文件.
 
-### MAC 平台
-
-使用brew安装protoc，安装的是最新版。
+MAC 平台使用 brew 安装 protoc ，安装的是最新版。
 
     $ brew install protobuf
     $ protoc --version
@@ -82,49 +104,89 @@ Protoc用于编译相关程序运行文件.
     
     OK (skipped=1)
 
-千年隼和钛战机数据
+## 基于宠物数据的训练
 
-    git clone https://github.com/bourdakos1/Custom-Object-Detection.git
+### 数据准备
 
-宠物数据
+需要从网上下载所需的数据。
 
+    # From ai_pet_detector/
+    cd data/pets
     wget http://www.robots.ox.ac.uk/~vgg/data/pets/data/images.tar.gz
     wget http://www.robots.ox.ac.uk/~vgg/data/pets/data/annotations.tar.gz
     tar -xvf images.tar.gz
     tar -xvf annotations.tar.gz
 
-The Tensorflow Object Detection API expects data to be in the TFRecord format, so we'll now run the create_pet_tf_record script to convert from the raw Oxford-IIIT Pet dataset into TFRecords. Run the following commands from the tensorflow/models/research/ directory:
+将数据转化成 Tensorflow Object Detection API 所需要的 TFRecord 模式。
  
-    # From tensorflow/models/research/
+    # From ai_pet_detector/
     python object_detection/dataset_tools/create_pet_tf_record.py \
         --label_map_path=object_detection/data/pet_label_map.pbtxt \
         --data_dir=`pwd`/data/pets \
         --output_dir=`pwd`/training_data/pets
 
-下载训练好的模型
+复制 pet_label_map.pbtxt 到 training_data/pets 目录下
 
+    # From ai_pet_detector/
+    cp object_detection/data/pet_label_map.pbtxt training_data/pets/
+
+### 从训练好的模型进行迁移学习
+
+    # From ai_pet_detector/
     $ cd model
     $ wget http://download.tensorflow.org/models/object_detection/faster_rcnn_resnet101_coco_2018_01_28.tar.gz
     $ tar -xvf faster_rcnn_resnet101_coco_2018_01_28.tar.gz
     
     $ cp faster_rcnn_resnet101_coco_2018_01_28/model.ckpt.* ../training_data/pets
-    
-复制 pet_label_map.pbtxt 到 training_data/pets 目录下
+    $ cp object_detection/samples/configs/faster_rcnn_resnet101_pets.config training_data/pets/
 
-    cp object_detection/data/pet_label_map.pbtxt training_data/pets/
-    cp object_detection/samples/configs/faster_rcnn_resnet101_pets.config training_data/pets/
-
-
-We'll need to configure some paths in order for the template to work. Search the file for instances of PATH_TO_BE_CONFIGURED and replace them with the appropriate value 
+修改 faster_rcnn_resnet101_pets.config 文件，将其中的 PATH_TO_BE_CONFIGURED 替换成您的数据所在目录。
+在此例中，PATH_TO_BE_CONFIGURED 替换成 'training_data/pets'
 
     vi training_data/pets/faster_rcnn_resnet101_pets.config
     
-replace PATH_TO_BE_CONFIGURED to 'training_data/pets'
-
+### 执行训练
 
     python object_detection/model_main.py \
         --pipeline_config_path=training_data/pets/faster_rcnn_resnet101_pets.config \
         --model_dir=training_data/pets \
+        --num_train_steps=50000 \
+        --sample_1_of_n_eval_examples=1 \
+        --alsologtostderr
+              
+## 基于千年隼和钛战机数据的训练
+
+### 数据准备
+
+    # From ai_pet_detector 的上级目录
+    git clone https://github.com/bourdakos1/Custom-Object-Detection.git
+    cd Custom-Object-Detection
+    cp -r annotations ../ai_pet_detector/data/starwar
+    cp -r images ../ai_pet_detector/data/starwar
+
+将数据转化成 Tensorflow Object Detection API 所需要的 TFRecord 模式。
+这里我们需要先修改出一个 create_starwar_tf_record.py。根据标注数据，最后修改的结果如 [create_starwar_tf_record.py](object_detection/dataset_tools/create_starwar_tf_record.py) 
+修改出一个 faster_rcnn_resnet101_starwar.config。根据标注数据，最后修改的结果如 [faster_rcnn_resnet101_starwar.config](object_detection/samples/configs/faster_rcnn_resnet101_starwar.config) 
+
+    # From ai_pet_detector/
+    python object_detection/dataset_tools/create_starwar_tf_record.py \
+        --label_map_path=object_detection/data/pet_label_map.pbtxt \
+        --data_dir=`pwd`/data/starwar \
+        --output_dir=`pwd`/training_data/starwar
+
+    cp models/faster_rcnn_resnet101_coco_2018_01_28/model.ckpt.* training_data/starwar
+    cp object_detection/samples/configs/faster_rcnn_resnet101_starwar.config training_data/starwar/
+
+修改 faster_rcnn_resnet101_starwar.config 文件，将其中的 PATH_TO_BE_CONFIGURED 替换成您的数据所在目录。
+在此例中，PATH_TO_BE_CONFIGURED 替换成 'training_data/starwar'
+
+    vi training_data/pets/faster_rcnn_resnet101_pets.config
+    
+训练
+    
+    python object_detection/model_main.py \
+        --pipeline_config_path=training_data/starwar/faster_rcnn_resnet101_starwar.config \
+        --model_dir=training_data/starwar \
         --num_train_steps=50000 \
         --sample_1_of_n_eval_examples=1 \
         --alsologtostderr
