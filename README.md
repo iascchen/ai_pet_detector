@@ -44,6 +44,22 @@ MAC 平台使用 brew 安装 protoc ，安装的是最新版。
     $ brew install protobuf
     $ protoc --version
     libprotoc 3.9.0
+
+linux Ubuntu 直接用 apt install protobuf-compiler 安装的是 libprotoc 3.0.0， 所以我们需要从源代码编译最新的版本    
+    
+    $ sudo apt-get install autoconf automake libtool curl make g++ unzip
+    
+    $ wget https://github.com/protocolbuffers/protobuf/releases/download/v3.9.1/protobuf-all-3.9.1.tar.gz
+    $ tar -xvf protobuf-all-3.9.1.tar.gz
+    $ cd protobuf-all-3.9.1
+    $ ./configure
+    $ make
+    $ make check
+    $ sudo make install
+    $ ln -s /usr/local/bin/protoc /usr/bin/protoc
+    $ sudo ldconfig # refresh shared library cache.
+    $ protoc --version
+    libprotoc 3.9.1
     
 编译Object Detection API的代码。成功后，能够在 protos 目录下看到编译出的 *_pb2.py 文件：
 
@@ -111,16 +127,16 @@ MAC 平台使用 brew 安装 protoc ，安装的是最新版。
 需要从网上下载所需的数据。
 
     # From ai_pet_detector/
-    cd data/pets
-    wget http://www.robots.ox.ac.uk/~vgg/data/pets/data/images.tar.gz
-    wget http://www.robots.ox.ac.uk/~vgg/data/pets/data/annotations.tar.gz
-    tar -xvf images.tar.gz
-    tar -xvf annotations.tar.gz
+    $ cd data/pets
+    $ wget http://www.robots.ox.ac.uk/~vgg/data/pets/data/images.tar.gz
+    $ wget http://www.robots.ox.ac.uk/~vgg/data/pets/data/annotations.tar.gz
+    $ tar -xvf images.tar.gz
+    $ tar -xvf annotations.tar.gz
 
 将数据转化成 Tensorflow Object Detection API 所需要的 TFRecord 模式。
  
     # From ai_pet_detector/
-    python object_detection/dataset_tools/create_pet_tf_record.py \
+    $ python object_detection/dataset_tools/create_pet_tf_record.py \
         --label_map_path=object_detection/data/pet_label_map.pbtxt \
         --data_dir=`pwd`/data/pets \
         --output_dir=`pwd`/training_data/pets
@@ -128,7 +144,7 @@ MAC 平台使用 brew 安装 protoc ，安装的是最新版。
 复制 pet_label_map.pbtxt 到 training_data/pets 目录下
 
     # From ai_pet_detector/
-    cp object_detection/data/pet_label_map.pbtxt training_data/pets/
+    $ cp object_detection/data/pet_label_map.pbtxt training_data/pets/
 
 ### 从训练好的模型进行迁移学习
 
@@ -143,11 +159,11 @@ MAC 平台使用 brew 安装 protoc ，安装的是最新版。
 修改 faster_rcnn_resnet101_pets.config 文件，将其中的 PATH_TO_BE_CONFIGURED 替换成您的数据所在目录。
 在此例中，PATH_TO_BE_CONFIGURED 替换成 'training_data/pets'
 
-    vi training_data/pets/faster_rcnn_resnet101_pets.config
+    $ vi training_data/pets/faster_rcnn_resnet101_pets.config
     
 ### 执行训练
 
-    python object_detection/model_main.py \
+    $ python object_detection/model_main.py \
         --pipeline_config_path=training_data/pets/faster_rcnn_resnet101_pets.config \
         --model_dir=training_data/pets \
         --num_train_steps=50000 \
@@ -159,32 +175,32 @@ MAC 平台使用 brew 安装 protoc ，安装的是最新版。
 ### 数据准备
 
     # From ai_pet_detector 的上级目录
-    git clone https://github.com/bourdakos1/Custom-Object-Detection.git
-    cd Custom-Object-Detection
-    cp -r annotations ../ai_pet_detector/data/starwar
-    cp -r images ../ai_pet_detector/data/starwar
+    $ git clone https://github.com/bourdakos1/Custom-Object-Detection.git
+    $ cd Custom-Object-Detection
+    $ cp -r annotations ../ai_pet_detector/data/starwar
+    $ cp -r images ../ai_pet_detector/data/starwar
 
 将数据转化成 Tensorflow Object Detection API 所需要的 TFRecord 模式。
 这里我们需要先修改出一个 create_starwar_tf_record.py。根据标注数据，最后修改的结果如 [create_starwar_tf_record.py](object_detection/dataset_tools/create_starwar_tf_record.py) 
 修改出一个 faster_rcnn_resnet101_starwar.config。根据标注数据，最后修改的结果如 [faster_rcnn_resnet101_starwar.config](object_detection/samples/configs/faster_rcnn_resnet101_starwar.config) 
 
     # From ai_pet_detector/
-    python object_detection/dataset_tools/create_starwar_tf_record.py \
+    $ python object_detection/dataset_tools/create_starwar_tf_record.py \
         --label_map_path=object_detection/data/pet_label_map.pbtxt \
         --data_dir=`pwd`/data/starwar \
         --output_dir=`pwd`/training_data/starwar
 
-    cp models/faster_rcnn_resnet101_coco_2018_01_28/model.ckpt.* training_data/starwar
-    cp object_detection/samples/configs/faster_rcnn_resnet101_starwar.config training_data/starwar/
+    $ cp models/faster_rcnn_resnet101_coco_2018_01_28/model.ckpt.* training_data/starwar
+    $ cp object_detection/samples/configs/faster_rcnn_resnet101_starwar.config training_data/starwar/
 
 修改 faster_rcnn_resnet101_starwar.config 文件，将其中的 PATH_TO_BE_CONFIGURED 替换成您的数据所在目录。
 在此例中，PATH_TO_BE_CONFIGURED 替换成 'training_data/starwar'
 
-    vi training_data/pets/faster_rcnn_resnet101_pets.config
+    $ vi training_data/pets/faster_rcnn_resnet101_pets.config
     
 训练
     
-    python object_detection/model_main.py \
+    $ python object_detection/model_main.py \
         --pipeline_config_path=training_data/starwar/faster_rcnn_resnet101_starwar.config \
         --model_dir=training_data/starwar \
         --num_train_steps=50000 \
