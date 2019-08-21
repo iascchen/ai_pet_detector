@@ -105,7 +105,7 @@ venv.bak/
 
 .idea/
 
-output/
-data/
-models/
+/output/
+/data/
+/models/
 training_data/
