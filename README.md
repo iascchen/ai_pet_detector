@@ -1,6 +1,7 @@
 # 个性化对象检测训练—— Pet Detector
 
-学习 Google Tensorflow Object Detection API的例子
+学习 Google Tensorflow Object Detection API的例子。
+[本地运行训练](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/running_locally.md)
 
 ## 对象检测的训练和执行过程
 
@@ -10,8 +11,7 @@
 
 执行过程的流程如下：
 
-    inputs (images tensor) -> preprocess -> predict -> postprocess ->
-      outputs (boxes tensor, scores tensor, classes tensor, num_detections tensor)
+    inputs (images tensor) -> preprocess -> predict -> postprocess -> outputs (boxes tensor, scores tensor, classes tensor, num_detections tensor)
       
 ## 目录结构
 
@@ -45,7 +45,8 @@ MAC 平台使用 brew 安装 protoc ，安装的是最新版。
     $ protoc --version
     libprotoc 3.9.0
 
-linux Ubuntu 直接用 apt install protobuf-compiler 安装的是 libprotoc 3.0.0， 所以我们需要从源代码编译最新的版本    
+linux Ubuntu 直接用 apt install protobuf-compiler 安装的是 libprotoc 3.0.0. 官方文档说3.0.0就可用。
+我们也可以从源代码编译安装最新的版本.
     
     $ sudo apt-get install autoconf automake libtool curl make g++ unzip
     
@@ -169,6 +170,10 @@ linux Ubuntu 直接用 apt install protobuf-compiler 安装的是 libprotoc 3.0.
         --num_train_steps=50000 \
         --sample_1_of_n_eval_examples=1 \
         --alsologtostderr
+
+### tensorboard 查看训练过程
+
+    tensorboard --logdir=training_data/pets
               
 ## 基于千年隼和钛战机数据的训练
 
@@ -181,24 +186,35 @@ linux Ubuntu 直接用 apt install protobuf-compiler 安装的是 libprotoc 3.0.
     $ cp -r images ../ai_pet_detector/data/starwar
 
 将数据转化成 Tensorflow Object Detection API 所需要的 TFRecord 模式。
-这里我们需要先修改出一个 create_starwar_tf_record.py。根据标注数据，最后修改的结果如 [create_starwar_tf_record.py](object_detection/dataset_tools/create_starwar_tf_record.py) 
-修改出一个 faster_rcnn_resnet101_starwar.config。根据标注数据，最后修改的结果如 [faster_rcnn_resnet101_starwar.config](object_detection/samples/configs/faster_rcnn_resnet101_starwar.config) 
+
+这里我们需要先修改出一个 create_starwar_tf_record.py。
+根据标注数据，最后修改的结果如 [create_starwar_tf_record.py](object_detection/dataset_tools/create_starwar_tf_record.py) 
+
+再修改出一个 faster_rcnn_resnet101_starwar.config。[参考文献](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/configuring_jobs.md)
+根据标注数据，最后修改的结果如 [faster_rcnn_resnet101_starwar.config](object_detection/samples/configs/faster_rcnn_resnet101_starwar.config) 
 
     # From ai_pet_detector/
+    
+    $ cp models/faster_rcnn_resnet101_coco_2018_01_28/model.ckpt.* training_data/starwar
+    
+    $ cp object_detection/samples/configs/faster_rcnn_resnet101_starwar.config training_data/starwar/
+    $ cp object_detection/data/starwar_label_map.pbtxt training_data/starwar/
+    
+为解决无法找到 object_detection module 的问题，我们可以设置一个临时的环境变量。`ModuleNotFoundError: No module named 'object_detection'`
+    
+    $ export PYTHONPATH=$PYTHONPATH:.:`pwd`
+    
     $ python object_detection/dataset_tools/create_starwar_tf_record.py \
-        --label_map_path=object_detection/data/pet_label_map.pbtxt \
+        --label_map_path=object_detection/data/starwar_label_map.pbtxt \
         --data_dir=`pwd`/data/starwar \
         --output_dir=`pwd`/training_data/starwar
-
-    $ cp models/faster_rcnn_resnet101_coco_2018_01_28/model.ckpt.* training_data/starwar
-    $ cp object_detection/samples/configs/faster_rcnn_resnet101_starwar.config training_data/starwar/
 
 修改 faster_rcnn_resnet101_starwar.config 文件，将其中的 PATH_TO_BE_CONFIGURED 替换成您的数据所在目录。
 在此例中，PATH_TO_BE_CONFIGURED 替换成 'training_data/starwar'
 
-    $ vi training_data/pets/faster_rcnn_resnet101_pets.config
+    $ vi training_data/starwar/faster_rcnn_resnet101_starwar.config
     
-训练
+### 执行训练
     
     $ python object_detection/model_main.py \
         --pipeline_config_path=training_data/starwar/faster_rcnn_resnet101_starwar.config \
@@ -206,3 +222,7 @@ linux Ubuntu 直接用 apt install protobuf-compiler 安装的是 libprotoc 3.0.
         --num_train_steps=50000 \
         --sample_1_of_n_eval_examples=1 \
         --alsologtostderr
+        
+### tensorboard 查看训练过程
+
+    tensorboard --logdir=training_data/starwar
