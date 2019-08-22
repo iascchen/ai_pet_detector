@@ -196,24 +196,33 @@ linux Ubuntu 直接用 apt install protobuf-compiler 安装的是 libprotoc 3.0.
     # From ai_pet_detector/
     
     $ cp models/faster_rcnn_resnet101_coco_2018_01_28/model.ckpt.* training_data/starwar
-    
-    $ cp object_detection/samples/configs/faster_rcnn_resnet101_starwar.config training_data/starwar/
     $ cp object_detection/data/starwar_label_map.pbtxt training_data/starwar/
-    
-为解决无法找到 object_detection module 的问题，我们可以设置一个临时的环境变量。`ModuleNotFoundError: No module named 'object_detection'`
-    
-    $ export PYTHONPATH=$PYTHONPATH:.:`pwd`
-    
-    $ python object_detection/dataset_tools/create_starwar_tf_record.py \
-        --label_map_path=object_detection/data/starwar_label_map.pbtxt \
-        --data_dir=`pwd`/data/starwar \
-        --output_dir=`pwd`/training_data/starwar
+    $ cp object_detection/samples/configs/faster_rcnn_resnet101_starwar.config training_data/starwar/
 
 修改 faster_rcnn_resnet101_starwar.config 文件，将其中的 PATH_TO_BE_CONFIGURED 替换成您的数据所在目录。
 在此例中，PATH_TO_BE_CONFIGURED 替换成 'training_data/starwar'
 
     $ vi training_data/starwar/faster_rcnn_resnet101_starwar.config
     
+### 问题处理
+
+ModuleNotFoundError: No module named 'object_detection'。可以设置一个临时的环境变量。
+    
+    $ export PYTHONPATH=$PYTHONPATH:.:`pwd`
+    $ echo $PYTHONPATH
+ 
+ModuleNotFoundError: No module named 'nets'。可以安装一下 slim。
+
+    $ export PYTHONPATH=$PYTHONPATH:`pwd`/slim
+    $ echo $PYTHONPATH
+
+### 创建数据
+    
+    $ python object_detection/dataset_tools/create_starwar_tf_record.py \
+        --label_map_path=object_detection/data/starwar_label_map.pbtxt \
+        --data_dir=`pwd`/data/starwar \
+        --output_dir=`pwd`/training_data/starwar
+
 ### 执行训练
     
     $ python object_detection/model_main.py \
